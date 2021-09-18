@@ -9,22 +9,10 @@ namespace LinenAndBird.DataAccess
 {
     public class BirdRepository
     {
-        static List<Bird> _birds = new List<Bird>
-        {
-            new Bird
-            {
-                Id = Guid.NewGuid(),
-                Name = "Jimmy",
-                Color = "Red",
-                Size = "Small",
-                Type = BirdType.Dead,
-                Accessories = new List<string> { "Beanie", "gold wing tips" }
-            }
-        };
-
+        const string _connectionString = "Server=localhost;Database=LinenAndBird;Trusted_Connection=True;";
         internal IEnumerable<Bird> GetAll()
         {
-            using var connection = new SqlConnection("Server=localhost;Database=LinenAndBird;Trusted_Connection=True;");
+            using var connection = new SqlConnection(_connectionString);
 
             connection.Open();
 
@@ -38,13 +26,7 @@ namespace LinenAndBird.DataAccess
 
             while(reader.Read())
             {
-                //Mapping from the relational model to the object model
-                var bird = new Bird();
-                bird.Id = reader.GetGuid(0);
-                bird.Size = reader["Size"].ToString(); //convert to string to be the right form in our object
-                bird.Type = (BirdType)reader["Type"]; //explicit casting to make sure it knows it should be read as is
-                bird.Color = reader["Color"].ToString();
-                bird.Name = reader["Name"].ToString();
+                var bird = MapFromReader(reader);
 
                 birds.Add(bird);
             }
@@ -52,16 +34,84 @@ namespace LinenAndBird.DataAccess
             return birds;
         }
 
+        internal void Remove(Guid id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            connection.Open();
+
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = @"Delete
+                                From Birds
+                                Where Id = @id";
+
+            cmd.Parameters.AddWithValue("id", id);
+
+            cmd.ExecuteNonQuery();
+        }
+
+        internal Bird Update(Guid id, Bird bird)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            connection.Open();
+
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = @"update Bird
+                                Set Color = @color,
+	                                Name = @name,
+	                                Type = @type,
+	                                Size = @size
+                                output inserted.*
+                                Where id = @id;";
+
+            cmd.Parameters.AddWithValue("Type", bird.Type);
+            cmd.Parameters.AddWithValue("Color", bird.Color);
+            cmd.Parameters.AddWithValue("Size", bird.Size);
+            cmd.Parameters.AddWithValue("Name", bird.Name);
+            cmd.Parameters.AddWithValue("id", id);
+
+            var reader = cmd.ExecuteReader();
+
+            if (reader.Read())
+            {
+                return MapFromReader(reader);
+            }
+
+            return null;
+
+        }
+
         internal void Add(Bird newBird)
         {
-            newBird.Id = Guid.NewGuid();
+            using var connection = new SqlConnection(_connectionString);
 
-            _birds.Add(newBird);
+            connection.Open();
+
+            var cmd = connection.CreateCommand();
+
+            cmd.CommandText = @"insert into birds(Type, Color, Size, Name)
+                                output inserted.Id
+                                values (@Type,@Color,@Size,@Name)";
+
+            cmd.Parameters.AddWithValue("Type", newBird.Type);
+            cmd.Parameters.AddWithValue("Color", newBird.Color);
+            cmd.Parameters.AddWithValue("Size", newBird.Size);
+            cmd.Parameters.AddWithValue("Name", newBird.Name);
+
+            //execute the query and just return number of rows affected
+            var numberOfRowsAffected = cmd.ExecuteNonQuery();
+
+            //execute the query and return the top left most entry (in this case the Guid Id)
+            var newId = (Guid) cmd.ExecuteScalar();
+
+            newBird.Id = newId;
+
         }
 
         internal Bird GetById(Guid birdId)
         {
-            using var connection = new SqlConnection("Server=localhost;Database=LinenAndBird;Trusted_Connection=True;");
+            using var connection = new SqlConnection(_connectionString);
 
             connection.Open();
 
@@ -76,19 +126,26 @@ namespace LinenAndBird.DataAccess
 
             if (reader.Read())
             {
-                var bird = new Bird();
-                bird.Id = reader.GetGuid(0);
-                bird.Size = reader["Size"].ToString(); //convert to string to be the right form in our object
-                bird.Type = (BirdType)reader["Type"]; //explicit casting to make sure it knows it should be read as is
-                bird.Color = reader["Color"].ToString();
-                bird.Name = reader["Name"].ToString();
-
-                return bird;
+                return MapFromReader(reader);
             }
 
             return null;
 
             //return _birds.FirstOrDefault(bird => bird.Id == birdId);
+        }
+
+        Bird MapFromReader(SqlDataReader reader)
+        {
+            //Mapping from the relational model to the object model
+
+            var bird = new Bird();
+            bird.Id = reader.GetGuid(0);
+            bird.Size = reader["Size"].ToString(); //convert to string to be the right form in our object
+            bird.Type = (BirdType)reader["Type"]; //explicit casting to make sure it knows it should be read as is
+            bird.Color = reader["Color"].ToString();
+            bird.Name = reader["Name"].ToString();
+
+            return bird;
         }
     }
 }
