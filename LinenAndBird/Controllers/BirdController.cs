@@ -27,7 +27,7 @@ namespace LinenAndBird.Controllers
         {
             var bird = _repo.GetById(id);
 
-            if (bird ==null)
+            if (bird == null)
             {
                 return NotFound($"No bird with the id {id} was found.");
             }

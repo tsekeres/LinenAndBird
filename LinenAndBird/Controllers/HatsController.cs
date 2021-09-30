@@ -14,9 +14,9 @@ namespace LinenAndBird.Controllers
     public class HatsController : ControllerBase
     {
         HatRepository _repo;
-        public HatsController()
+        public HatsController(HatRepository repo)
         {
-            _repo = new HatRepository();
+            _repo = repo;
         }
         [HttpGet]
         public List<Hat> GetAllHats()
