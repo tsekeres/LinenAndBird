@@ -11,7 +11,12 @@ namespace LinenAndBird.DataAccess
 {
     public class BirdRepository
     {
-        const string _connectionString = "Server=localhost;Database=LinenAndBird;Trusted_Connection=True;";
+        readonly string _connectionString;
+
+        public BirdRepository(IConfiguration config)
+        {
+            _connectionString = config.GetConnectionString("LinenAndBird");
+        }
         internal IEnumerable<Bird> GetAll()
         {
             using var db = new SqlConnection(_connectionString);

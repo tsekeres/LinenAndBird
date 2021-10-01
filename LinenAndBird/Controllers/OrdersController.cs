@@ -22,7 +22,6 @@ namespace LinenAndBird.Controllers
             _birdRepository = birdRepo;
             _hatRepository = hatRepo;
             _orderRepository = ordersRepo;
-
         }
 
         [HttpGet]

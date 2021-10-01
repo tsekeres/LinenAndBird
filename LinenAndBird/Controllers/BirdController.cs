@@ -1,6 +1,7 @@
 ﻿using LinenAndBird.DataAccess;
 using LinenAndBird.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 
@@ -11,9 +12,9 @@ namespace LinenAndBird.Controllers
     public class BirdController : ControllerBase
     {
         BirdRepository _repo;
-        public BirdController()
+        public BirdController(BirdRepository repo)
         {
-            _repo = new BirdRepository();
+            _repo = repo;
         }
 
         [HttpGet]
